@@ -2,17 +2,27 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: CI
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      github_ci: true
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3.1.0
 
       - name: Build the code with docker
         run: docker build . -t nettacker
+
+      - name: Run API Server with docker-compose
+        run: github_ci=true docker-compose up -d && sleep 5
+
+      - name: Run the tests
+        run: docker exec nettacker_nettacker_1 python3 -m pytest -rpP --reruns 5 --reruns-delay 3
+      - name: Stop API Server
+        run: docker-compose down
 
       - name: Lint
         run: "docker run -e github_ci=true -v $(pwd):/usr/src/owaspnettacker --rm nettacker flake8 --extend-exclude
